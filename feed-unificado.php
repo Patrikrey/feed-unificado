@@ -1,92 +1,129 @@
 <?php
-error_reporting(0);
-ini_set('display_errors', 0);
-ini_set('display_startup_errors', 0);
 header("Content-Type: application/rss+xml; charset=UTF-8");
 
-// Definir fuentes por categoría
+/**
+ * ================================
+ * CONFIGURACIÓN
+ * ================================
+ */
+
+// Categorías rotativas
 $categorias = [
-    "Negocios" => [
-        "https://eleconomista.com.ar/negocios/feed/"
-    ],
-    "Politica" => [
-        "https://www.mdzol.com/rss/pages/politica.xml"
-    ],
-    "Cuyo" => [
-        "https://www.mdzol.com/rss/pages/ultimas-noticias-mendoza.xml"
-    ],
-    "Nacional" => [
-        "https://www.mdzol.com/rss/pages/ultimas-noticias-argentina.xml"
-    ],
-    "Entretenimiento" => [
-        "https://www.mdzol.com/rss/pages/mdz-show.xml"
-    ],
-    "Internacional" => [
-        "https://www.mdzol.com/rss/pages/mundo.xml"
-    ]
+  "Cuyo",
+  "Nacional",
+  "Internacional",
+  "Entretenimiento",
+  "Negocios",
+  "Politica"
+];
+
+// Estado de la rotación
+$estado_file = __DIR__ . "/estado_categoria.txt";
+
+if (!file_exists($estado_file)) {
+  file_put_contents($estado_file, "0");
+}
+
+$indice = (int) file_get_contents($estado_file);
+$categoria_actual = $categorias[$indice];
+
+// Avanzar rotación
+$indice++;
+if ($indice >= count($categorias)) {
+  $indice = 0;
+}
+file_put_contents($estado_file, (string)$indice);
+
+
+/**
+ * ================================
+ * FEEDS DE ORIGEN
+ * (podés agregar más después)
+ * ================================
+ */
+
+$fuentes = [
+  "https://www.mdzol.com/rss/pages/ultimas-noticias-mendoza.xml",
+  "https://www.mdzol.com/rss/pages/ultimas-noticias-argentina.xml",
+  "https://www.mdzol.com/rss/pages/politica.xml",
+  "https://www.mdzol.com/rss/pages/mundo.xml",
+  "https://www.mdzol.com/rss/pages/mdz-show.xml",
+  "https://eleconomista.com.ar/negocios/feed/"
 ];
 
 $items = [];
 
-// Leer cada feed y agregar items
-foreach ($categorias as $cat => $fuentes) {
-    foreach ($fuentes as $url) {
-        $rss = @simplexml_load_file($url);
-        if (!$rss || !isset($rss->channel->item)) continue;
-        foreach ($rss->channel->item as $item) {
-            // Adjuntar categoría al item
-            $item->cat_assigned = $cat;
-            $items[] = $item;
-        }
-    }
+// Leer feeds
+foreach ($fuentes as $url) {
+  $rss = @simplexml_load_file($url);
+  if (!$rss || !isset($rss->channel->item)) continue;
+
+  foreach ($rss->channel->item as $item) {
+    $items[] = $item;
+  }
 }
 
-// Ordenar por fecha descendente (más recientes primero)
-usort($items, function($a, $b) {
-    return strtotime($b->pubDate) - strtotime($a->pubDate);
+// Ordenar por fecha (más nuevos primero)
+usort($items, function ($a, $b) {
+  return strtotime($b->pubDate) - strtotime($a->pubDate);
 });
 
-// Generar RSS unificado
+// Limitar cantidad
+$items = array_slice($items, 0, 20);
+
+
+/**
+ * ================================
+ * SALIDA RSS
+ * ================================
+ */
+
 echo '<?xml version="1.0" encoding="UTF-8"?>';
-echo '<rss version="2.0" xmlns:media="http://search.yahoo.com/mrss/">';
-echo '<channel>';
-echo '<title>Feed privado unificado</title>';
-echo '<link>https://bienarribacuyo.is-great.net/</link>';
-echo '<description>Noticias combinadas para automatización</description>';
+?>
+<rss version="2.0" xmlns:media="http://search.yahoo.com/mrss/">
+<channel>
+  <title>Feed Unificado Privado</title>
+  <link>https://feed-unificado.onrender.com</link>
+  <description>Feed privado para automatización</description>
 
-foreach (array_slice($items, 0, 50) as $item) {
+<?php foreach ($items as $item): ?>
 
-    // Categoría asignada desde $item->cat_assigned
-    $categoria_final = $item->cat_assigned;
+  <item>
+    <title><![CDATA[<?= (string)$item->title ?>]]></title>
+    <link><?= (string)$item->link ?></link>
+    <description><![CDATA[<?= strip_tags((string)$item->description) ?>]]></description>
+    <pubDate><?= (string)$item->pubDate ?></pubDate>
 
-    echo '<item>';
-    echo '<title><![CDATA['.$item->title.']]></title>';
-    echo '<link>'.$item->link.'</link>';
-    echo '<description><![CDATA['.strip_tags($item->description).']]></description>';
-    echo '<pubDate>'.$item->pubDate.'</pubDate>';
+    <!-- Categoría rotativa -->
+    <category><?= htmlspecialchars($categoria_actual) ?></category>
 
-    // Etiqueta <category> para Make
-    echo '<category><![CDATA[' . $categoria_final . ']]></category>';
+<?php
+    // Extraer imagen
+    $image_url = "";
 
-    // Extraer imagen si existe
-    $image_url = '';
+    // media:content
     $namespaces = $item->getNameSpaces(true);
     if (isset($namespaces['media'])) {
-        $media = $item->children($namespaces['media']);
-        if (isset($media->content)) {
-            $image_url = (string)$media->content->attributes()->url;
-        }
-    }
-    if (!$image_url && preg_match('/<img.*?src=["\'](.*?)["\']/i', $item->description, $m)) {
-        $image_url = $m[1];
-    }
-    if ($image_url) {
-        echo '<media:content url="' . htmlspecialchars($image_url) . '" type="image/jpeg" />';
-        echo '<enclosure url="' . htmlspecialchars($image_url) . '" type="image/jpeg" />';
+      $media = $item->children($namespaces['media']);
+      if (isset($media->content)) {
+        $image_url = (string)$media->content->attributes()->url;
+      }
     }
 
-    echo '</item>';
-}
+    // fallback <img>
+    if (!$image_url && preg_match('/<img.*?src=["\'](.*?)["\']/i', (string)$item->description, $m)) {
+      $image_url = $m[1];
+    }
 
-echo '</channel>';
-echo '</rss>';
+    if ($image_url):
+?>
+    <media:content url="<?= htmlspecialchars($image_url) ?>" type="image/jpeg" />
+    <enclosure url="<?= htmlspecialchars($image_url) ?>" type="image/jpeg" />
+<?php endif; ?>
+
+  </item>
+
+<?php endforeach; ?>
+
+</channel>
+</rss>
