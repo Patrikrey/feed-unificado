@@ -6,20 +6,20 @@ header("Content-Type: application/rss+xml; charset=UTF-8");
 */
 $feeds = [
     [
-        "url" => "https://nden.com.ar/rss", 
+        "url" => "https://nden.com.ar/rss/locales",
         "category" => "Locales"
     ],
     [
-        "url" => "https://nden.com.ar/seccion/politica/rss",
+        "url" => "https://nden.com.ar/rss/politica",
         "category" => "Politica"
     ],
     [
-        "url" => "https://nden.com.ar/seccion/deportes/rss",
+        "url" => "https://nden.com.ar/rss/deportes",
         "category" => "Deportes"
     ],
     [
-        "url" => "https://nden.com.ar/seccion/sociedad/rss",
-        "category" => "Sociedad"
+        "url" => "https://nden.com.ar/rss/policiales",
+        "category" => "Policiales"
     ]
 ];
 
@@ -50,7 +50,6 @@ foreach ($feeds as $feed) {
 */
 function extract_image($item) {
 
-    // media:content
     $namespaces = $item->getNameSpaces(true);
     if (isset($namespaces["media"])) {
         $media = $item->children($namespaces["media"]);
@@ -59,7 +58,6 @@ function extract_image($item) {
         }
     }
 
-    // img en description
     if (preg_match('/<img.*?src=["\'](.*?)["\']/i', (string)$item->description, $matches)) {
         return $matches[1];
     }
