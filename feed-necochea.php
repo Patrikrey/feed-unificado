@@ -1,74 +1,97 @@
 <?php
-
 header("Content-Type: application/rss+xml; charset=UTF-8");
 
-$fuente = $_GET['fuente'] ?? '';
-$cat = $_GET['cat'] ?? '';
-
 /*
-|--------------------------------------------------------------------------
-| CONFIGURACIÓN DE FUENTES
-|--------------------------------------------------------------------------
+ FEEDS NECochea + CATEGORÍA FIJA
 */
-
-$fuentes = [
-
-    "nden" => [
-        "tipo" => "rss",
-        "base_url" => "https://nden.com.ar/rss/",
-        "categorias" => [
-            "politica",
-            "policiales",
-            "deportes",
-            "locales"
-        ]
+$feeds = [
+    [
+        "url" => "https://nden.com.ar/rss", 
+        "category" => "Locales"
+    ],
+    [
+        "url" => "https://nden.com.ar/seccion/politica/rss",
+        "category" => "Politica"
+    ],
+    [
+        "url" => "https://nden.com.ar/seccion/deportes/rss",
+        "category" => "Deportes"
+    ],
+    [
+        "url" => "https://nden.com.ar/seccion/sociedad/rss",
+        "category" => "Sociedad"
     ]
-
 ];
 
-/*
-|--------------------------------------------------------------------------
-| VALIDACIÓN
-|--------------------------------------------------------------------------
-*/
+$items = [];
 
-if (!isset($fuentes[$fuente])) {
-    exit("Fuente no válida");
-}
+foreach ($feeds as $feed) {
 
-$config = $fuentes[$fuente];
-
-if (!in_array($cat, $config["categorias"])) {
-    exit("Categoría no válida");
-}
-
-/*
-|--------------------------------------------------------------------------
-| MANEJO SEGÚN TIPO DE FUENTE
-|--------------------------------------------------------------------------
-*/
-
-if ($config["tipo"] === "rss") {
-
-    $url = $config["base_url"] . $cat;
-
-    $contenido = @file_get_contents($url);
-
-    if ($contenido === false) {
-        exit("No se pudo obtener el feed");
+    $rss = @simplexml_load_file($feed["url"]);
+    if (!$rss || !isset($rss->channel->item)) {
+        continue;
     }
 
-    echo $contenido;
-    exit;
+    // SOLO 1 noticia por feed (la más reciente)
+    $item = $rss->channel->item[0];
+
+    $items[] = [
+        "title" => (string)$item->title,
+        "link" => (string)$item->link,
+        "description" => strip_tags((string)$item->description),
+        "pubDate" => (string)$item->pubDate,
+        "category" => $feed["category"],
+        "image" => extract_image($item)
+    ];
 }
 
 /*
-|--------------------------------------------------------------------------
-| FUTURO: SCRAPING
-|--------------------------------------------------------------------------
-| Aquí luego agregaremos medios sin RSS
+ FUNCIÓN PARA EXTRAER IMAGEN
 */
+function extract_image($item) {
 
-exit("Tipo de fuente no soportado");
+    // media:content
+    $namespaces = $item->getNameSpaces(true);
+    if (isset($namespaces["media"])) {
+        $media = $item->children($namespaces["media"]);
+        if (isset($media->content)) {
+            return (string)$media->content->attributes()->url;
+        }
+    }
 
+    // img en description
+    if (preg_match('/<img.*?src=["\'](.*?)["\']/i', (string)$item->description, $matches)) {
+        return $matches[1];
+    }
+
+    return "";
+}
+
+/*
+ SALIDA RSS
+*/
+echo '<?xml version="1.0" encoding="UTF-8"?>';
 ?>
+<rss version="2.0" xmlns:media="http://search.yahoo.com/mrss/">
+<channel>
+    <title>Feed Unificado Noticias Necochea</title>
+    <link>https://feed-unificado.onrender.com</link>
+    <description>Noticias locales de Necochea por categoría</description>
+
+<?php foreach ($items as $item): ?>
+    <item>
+        <title><![CDATA[<?= $item["title"] ?>]]></title>
+        <link><?= $item["link"] ?></link>
+        <description><![CDATA[<?= $item["description"] ?>]]></description>
+        <pubDate><?= $item["pubDate"] ?></pubDate>
+        <category><![CDATA[<?= $item["category"] ?>]]></category>
+
+        <?php if (!empty($item["image"])): ?>
+            <media:content url="<?= $item["image"] ?>" type="image/jpeg"/>
+            <enclosure url="<?= $item["image"] ?>" type="image/jpeg"/>
+        <?php endif; ?>
+    </item>
+<?php endforeach; ?>
+
+</channel>
+</rss>
