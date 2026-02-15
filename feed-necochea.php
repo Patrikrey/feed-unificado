@@ -1,14 +1,25 @@
 <?php
 header("Content-Type: application/rss+xml; charset=UTF-8");
 
+/*
+ FEEDS UNIFICADOS
+*/
 $feeds = [
 
+    // NDEN
     ["url" => "https://nden.com.ar/rss/locales", "category" => "Locales"],
     ["url" => "https://nden.com.ar/rss/politica", "category" => "Politica"],
     ["url" => "https://nden.com.ar/rss/deportes", "category" => "Deportes"],
     ["url" => "https://nden.com.ar/rss/policiales", "category" => "Policiales"],
+
+    // Ecos Diarios
     ["url" => "https://ecosdiariosapiv3.eleco.com.ar/feed-notes", "category" => "Locales"],
-    ["url" => "https://necocheanews.com.ar/feed/", "category" => "Locales"]
+
+    // Necochea News
+    ["url" => "https://necocheanews.com.ar/feed/", "category" => "Locales"],
+
+    // Clarín - Lo Último (Nacional)
+    ["url" => "https://www.clarin.com/rss/lo-ultimo/", "category" => "Nacional"]
 
 ];
 
@@ -23,33 +34,52 @@ foreach ($feeds as $feed) {
 
     foreach ($rss->channel->item as $item) {
 
+        $pubDate = (string)$item->pubDate;
+        $timestamp = strtotime($pubDate);
+
+        if (!$timestamp) {
+            $timestamp = time();
+        }
+
         $items[] = [
             "title" => trim((string)$item->title),
             "link" => trim((string)$item->link),
             "description" => trim(strip_tags((string)$item->description)),
-            "pubDate" => (string)$item->pubDate,
-            "timestamp" => strtotime((string)$item->pubDate),
+            "pubDate" => $pubDate,
+            "timestamp" => $timestamp,
             "category" => $feed["category"],
             "image" => extract_image($item)
         ];
     }
 }
 
+/*
+ FUNCIÓN ROBUSTA PARA EXTRAER IMAGEN
+*/
 function extract_image($item) {
 
     $namespaces = $item->getNameSpaces(true);
 
+    // media:content
     if (isset($namespaces["media"])) {
         $media = $item->children($namespaces["media"]);
         if (isset($media->content)) {
-            return (string)$media->content->attributes()->url;
+            $attrs = $media->content->attributes();
+            if (isset($attrs["url"])) {
+                return (string)$attrs["url"];
+            }
         }
     }
 
+    // enclosure
     if (isset($item->enclosure)) {
-        return (string)$item->enclosure->attributes()->url;
+        $attrs = $item->enclosure->attributes();
+        if (isset($attrs["url"])) {
+            return (string)$attrs["url"];
+        }
     }
 
+    // imagen dentro del description
     if (preg_match('/<img.*?src=["\'](.*?)["\']/i', (string)$item->description, $matches)) {
         return $matches[1];
     }
@@ -65,6 +95,7 @@ usort($items, function($a, $b) {
 // Limitar a 10 noticias totales
 $items = array_slice($items, 0, 10);
 
+// Salida RSS
 echo '<?xml version="1.0" encoding="UTF-8"?>';
 ?>
 
@@ -72,7 +103,7 @@ echo '<?xml version="1.0" encoding="UTF-8"?>';
 <channel>
 <title>Feed Unificado Noticias Necochea</title>
 <link>https://feed-unificado.onrender.com</link>
-<description>Noticias locales de Necochea</description>
+<description>Noticias locales y nacionales</description>
 
 <?php foreach ($items as $item): ?>
 <item>
