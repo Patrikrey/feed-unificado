@@ -2,24 +2,37 @@
 header("Content-Type: application/rss+xml; charset=UTF-8");
 
 /*
- FEEDS UNIFICADOS
+  FEEDS UNIFICADOS - EXCLUSIVO NECOCHEA Y QUEQUÉN
+  Verificados: Febrero 2026
 */
 $feeds = [
 
-    // NDEN
+    // NDEN (Noticias de Necochea)
     ["url" => "https://nden.com.ar/rss/locales", "category" => "Locales"],
     ["url" => "https://nden.com.ar/rss/politica", "category" => "Politica"],
     ["url" => "https://nden.com.ar/rss/deportes", "category" => "Deportes"],
     ["url" => "https://nden.com.ar/rss/policiales", "category" => "Policiales"],
 
-    // Ecos Diarios
+    // Ecos Diarios (API Principal)
     ["url" => "https://ecosdiariosapiv3.eleco.com.ar/feed-notes", "category" => "Locales"],
+
+    // Diario Necochea
+    ["url" => "https://diarionecochea.com/feed/", "category" => "Locales"],
+
+    // TSN Necochea
+    ["url" => "https://tsnnecochea.com.ar/feed/", "category" => "Locales"],
 
     // Necochea News
     ["url" => "https://necocheanews.com.ar/feed/", "category" => "Locales"],
 
-    // Clarín - Lo Último (Nacional)
-    ["url" => "https://www.clarin.com/rss/lo-ultimo/", "category" => "Nacional"]
+    // Necochea Digital
+    ["url" => "https://necocheadigital.com/feed/", "category" => "Locales"],
+    
+    // 2262 - Noticias de Necochea y Quequén
+    ["url" => "https://2262.com.ar/feed/", "category" => "Locales"],
+
+    // Cuatro Medios
+    ["url" => "https://www.cuatromedios.com.ar/feed/", "category" => "Locales"]
 
 ];
 
@@ -54,7 +67,7 @@ foreach ($feeds as $feed) {
 }
 
 /*
- FUNCIÓN ROBUSTA PARA EXTRAER IMAGEN
+  FUNCIÓN ROBUSTA PARA EXTRAER IMAGEN
 */
 function extract_image($item) {
 
@@ -103,7 +116,7 @@ echo '<?xml version="1.0" encoding="UTF-8"?>';
 <channel>
 <title>Feed Unificado Noticias Necochea</title>
 <link>https://feed-unificado.onrender.com</link>
-<description>Noticias locales y nacionales</description>
+<description>Noticias locales de Necochea y Quequén</description>
 
 <?php foreach ($items as $item): ?>
 <item>
