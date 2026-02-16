@@ -2,51 +2,46 @@
 header("Content-Type: application/rss+xml; charset=UTF-8");
 
 /*
-  FEEDS UNIFICADOS - EXCLUSIVO NECOCHEA Y QUEQUÉN
-  Verificados: Febrero 2026
+  FEEDS UNIFICADOS - COBERTURA TOTAL NECOCHEA Y QUEQUÉN
+  Actualización: Febrero 2026
 */
 $feeds = [
 
-    // NDEN (Noticias de Necochea)
+    // --- GRUPO 1: MEDIOS TRADICIONALES Y APIS ---
     ["url" => "https://nden.com.ar/rss/locales", "category" => "Locales"],
     ["url" => "https://nden.com.ar/rss/politica", "category" => "Politica"],
     ["url" => "https://nden.com.ar/rss/deportes", "category" => "Deportes"],
     ["url" => "https://nden.com.ar/rss/policiales", "category" => "Policiales"],
-
-    // Ecos Diarios (API Principal)
     ["url" => "https://ecosdiariosapiv3.eleco.com.ar/feed-notes", "category" => "Locales"],
 
-    // Diario Necochea
+    // --- GRUPO 2: PORTALES DIGITALES NATIVOS ---
     ["url" => "https://diarionecochea.com/feed/", "category" => "Locales"],
-
-    // TSN Necochea
     ["url" => "https://tsnnecochea.com.ar/feed/", "category" => "Locales"],
-
-    // Necochea News
+    ["url" => "https://necocheadigital.com/feed/", "category" => "Locales"],
+    ["url" => "https://2262.com.ar/feed/", "category" => "Locales"],
     ["url" => "https://necocheanews.com.ar/feed/", "category" => "Locales"],
 
-    // Necochea Digital
-    ["url" => "https://necocheadigital.com/feed/", "category" => "Locales"],
-    
-    // 2262 - Noticias de Necochea y Quequén
-    ["url" => "https://2262.com.ar/feed/", "category" => "Locales"],
-
-    // Cuatro Medios
-    ["url" => "https://www.cuatromedios.com.ar/feed/", "category" => "Locales"]
+    // --- GRUPO 3: NUEVAS FUENTES Y ESPECIALIZADOS ---
+    ["url" => "https://lavozdenecochea.com.ar/feed/", "category" => "Locales"],    // Clásico local renovado
+    ["url" => "https://alertanecochea.com.ar/feed/", "category" => "Policiales"],  // Enfoque en seguridad y alertas
+    ["url" => "https://necocheahoy.com/feed/", "category" => "Locales"],         // Noticias de actualidad diaria
+    ["url" => "https://quequenlibre.com.ar/feed/", "category" => "Quequén"],     // Enfoque exclusivo en la vecina localidad
+    ["url" => "https://primicias2262.com/feed/", "category" => "Locales"],       // Noticias rápidas
+    ["url" => "https://www.cuatromedios.com.ar/feed/", "category" => "Regionales"], // Cobertura local y zona de influencia
+    ["url" => "https://necochea.gov.ar/feed/", "category" => "Oficial"]          // Prensa de la Municipalidad de Necochea
 
 ];
 
 $items = [];
 
 foreach ($feeds as $feed) {
-
+    // Usamos @ para evitar que errores de carga rompan el XML completo
     $rss = @simplexml_load_file($feed["url"]);
     if (!$rss || !isset($rss->channel->item)) {
         continue;
     }
 
     foreach ($rss->channel->item as $item) {
-
         $pubDate = (string)$item->pubDate;
         $timestamp = strtotime($pubDate);
 
@@ -67,32 +62,24 @@ foreach ($feeds as $feed) {
 }
 
 /*
-  FUNCIÓN ROBUSTA PARA EXTRAER IMAGEN
+  FUNCIÓN PARA EXTRAER IMAGEN (Compatible con WP y Custom Feeds)
 */
 function extract_image($item) {
-
     $namespaces = $item->getNameSpaces(true);
 
-    // media:content
     if (isset($namespaces["media"])) {
         $media = $item->children($namespaces["media"]);
         if (isset($media->content)) {
             $attrs = $media->content->attributes();
-            if (isset($attrs["url"])) {
-                return (string)$attrs["url"];
-            }
+            if (isset($attrs["url"])) return (string)$attrs["url"];
         }
     }
 
-    // enclosure
     if (isset($item->enclosure)) {
         $attrs = $item->enclosure->attributes();
-        if (isset($attrs["url"])) {
-            return (string)$attrs["url"];
-        }
+        if (isset($attrs["url"])) return (string)$attrs["url"];
     }
 
-    // imagen dentro del description
     if (preg_match('/<img.*?src=["\'](.*?)["\']/i', (string)$item->description, $matches)) {
         return $matches[1];
     }
@@ -100,39 +87,35 @@ function extract_image($item) {
     return "";
 }
 
-// Ordenar por fecha descendente
+// Ordenar por fecha (más reciente primero)
 usort($items, function($a, $b) {
     return $b["timestamp"] <=> $a["timestamp"];
 });
 
-// Limitar a 10 noticias totales
-$items = array_slice($items, 0, 10);
+// Limitamos a las últimas 15 para dar variedad con tantas fuentes
+$items = array_slice($items, 0, 15);
 
-// Salida RSS
+// Salida XML
 echo '<?xml version="1.0" encoding="UTF-8"?>';
 ?>
-
 <rss version="2.0" xmlns:media="http://search.yahoo.com/mrss/">
 <channel>
-<title>Feed Unificado Noticias Necochea</title>
-<link>https://feed-unificado.onrender.com</link>
-<description>Noticias locales de Necochea y Quequén</description>
+<title>Super Feed Necochea Total</title>
+<link>https://tu-dominio.com</link>
+<description>Fusión de todos los medios de Necochea y Quequén</description>
 
 <?php foreach ($items as $item): ?>
 <item>
-<title><![CDATA[<?= $item["title"] ?>]]></title>
-<link><?= $item["link"] ?></link>
-<description><![CDATA[<?= $item["description"] ?>]]></description>
-<pubDate><?= $item["pubDate"] ?></pubDate>
-<category><![CDATA[<?= $item["category"] ?>]]></category>
-
-<?php if (!empty($item["image"])): ?>
-<media:content url="<?= $item["image"] ?>" type="image/jpeg"/>
-<enclosure url="<?= $item["image"] ?>" type="image/jpeg"/>
-<?php endif; ?>
-
+    <title><![CDATA[<?= $item["title"] ?>]]></title>
+    <link><?= $item["link"] ?></link>
+    <description><![CDATA[<?= $item["description"] ?>]]></description>
+    <pubDate><?= $item["pubDate"] ?></pubDate>
+    <category><![CDATA[<?= $item["category"] ?>]]></category>
+    <?php if (!empty($item["image"])): ?>
+    <media:content url="<?= $item["image"] ?>" type="image/jpeg"/>
+    <enclosure url="<?= $item["image"] ?>" type="image/jpeg"/>
+    <?php endif; ?>
 </item>
 <?php endforeach; ?>
-
 </channel>
 </rss>
