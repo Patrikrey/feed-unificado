@@ -2,54 +2,40 @@
 header("Content-Type: application/rss+xml; charset=UTF-8");
 
 /*
-  FEEDS UNIFICADOS - COBERTURA TOTAL NECOCHEA Y QUEQUÉN
+  FEEDS UNIFICADOS - SELECCIÓN POR CATEGORÍA (MÁXIMA VARIEDAD)
   Actualización: Febrero 2026
 */
 $feeds = [
-
-    // --- GRUPO 1: MEDIOS TRADICIONALES Y APIS ---
     ["url" => "https://nden.com.ar/rss/locales", "category" => "Locales"],
     ["url" => "https://nden.com.ar/rss/politica", "category" => "Politica"],
     ["url" => "https://nden.com.ar/rss/deportes", "category" => "Deportes"],
     ["url" => "https://nden.com.ar/rss/policiales", "category" => "Policiales"],
     ["url" => "https://ecosdiariosapiv3.eleco.com.ar/feed-notes", "category" => "Locales"],
-
-    // --- GRUPO 2: PORTALES DIGITALES NATIVOS ---
     ["url" => "https://diarionecochea.com/feed/", "category" => "Locales"],
     ["url" => "https://tsnnecochea.com.ar/feed/", "category" => "Locales"],
     ["url" => "https://necocheadigital.com/feed/", "category" => "Locales"],
     ["url" => "https://2262.com.ar/feed/", "category" => "Locales"],
     ["url" => "https://necocheanews.com.ar/feed/", "category" => "Locales"],
-
-    // --- GRUPO 3: NUEVAS FUENTES Y ESPECIALIZADOS ---
-    ["url" => "https://lavozdenecochea.com.ar/feed/", "category" => "Locales"],    // Clásico local renovado
-    ["url" => "https://alertanecochea.com.ar/feed/", "category" => "Policiales"],  // Enfoque en seguridad y alertas
-    ["url" => "https://necocheahoy.com/feed/", "category" => "Locales"],         // Noticias de actualidad diaria
-    ["url" => "https://quequenlibre.com.ar/feed/", "category" => "Quequén"],     // Enfoque exclusivo en la vecina localidad
-    ["url" => "https://primicias2262.com/feed/", "category" => "Locales"],       // Noticias rápidas
-    ["url" => "https://www.cuatromedios.com.ar/feed/", "category" => "Regionales"], // Cobertura local y zona de influencia
-    ["url" => "https://necochea.gov.ar/feed/", "category" => "Oficial"]          // Prensa de la Municipalidad de Necochea
-
+    ["url" => "https://lavozdenecochea.com.ar/feed/", "category" => "Locales"],
+    ["url" => "https://alertanecochea.com.ar/feed/", "category" => "Policiales"],
+    ["url" => "https://necocheahoy.com/feed/", "category" => "Locales"],
+    ["url" => "https://quequenlibre.com.ar/feed/", "category" => "Quequén"],
+    ["url" => "https://primicias2262.com/feed/", "category" => "Locales"],
+    ["url" => "https://www.cuatromedios.com.ar/feed/", "category" => "Regionales"],
+    ["url" => "https://necochea.gov.ar/feed/", "category" => "Oficial"]
 ];
 
-$items = [];
+$all_items = [];
 
 foreach ($feeds as $feed) {
-    // Usamos @ para evitar que errores de carga rompan el XML completo
     $rss = @simplexml_load_file($feed["url"]);
-    if (!$rss || !isset($rss->channel->item)) {
-        continue;
-    }
+    if (!$rss || !isset($rss->channel->item)) continue;
 
     foreach ($rss->channel->item as $item) {
         $pubDate = (string)$item->pubDate;
-        $timestamp = strtotime($pubDate);
+        $timestamp = strtotime($pubDate) ?: time();
 
-        if (!$timestamp) {
-            $timestamp = time();
-        }
-
-        $items[] = [
+        $all_items[] = [
             "title" => trim((string)$item->title),
             "link" => trim((string)$item->link),
             "description" => trim(strip_tags((string)$item->description)),
@@ -61,12 +47,28 @@ foreach ($feeds as $feed) {
     }
 }
 
-/*
-  FUNCIÓN PARA EXTRAER IMAGEN (Compatible con WP y Custom Feeds)
-*/
+// 1. Ordenar todo por fecha (más reciente primero)
+usort($all_items, function($a, $b) {
+    return $b["timestamp"] <=> $a["timestamp"];
+});
+
+// 2. LÓGICA DE FILTRADO: UNA POR CATEGORÍA
+$filtered_items = [];
+$used_categories = [];
+
+foreach ($all_items as $item) {
+    // Si esta categoría aún no está en nuestra lista de salida, la agregamos
+    if (!in_array($item["category"], $used_categories)) {
+        $filtered_items[] = $item;
+        $used_categories[] = $item["category"];
+    }
+}
+
+// El resultado final en $filtered_items tendrá máximo una noticia de cada categoría
+$items = $filtered_items;
+
 function extract_image($item) {
     $namespaces = $item->getNameSpaces(true);
-
     if (isset($namespaces["media"])) {
         $media = $item->children($namespaces["media"]);
         if (isset($media->content)) {
@@ -74,35 +76,23 @@ function extract_image($item) {
             if (isset($attrs["url"])) return (string)$attrs["url"];
         }
     }
-
     if (isset($item->enclosure)) {
         $attrs = $item->enclosure->attributes();
         if (isset($attrs["url"])) return (string)$attrs["url"];
     }
-
     if (preg_match('/<img.*?src=["\'](.*?)["\']/i', (string)$item->description, $matches)) {
         return $matches[1];
     }
-
     return "";
 }
 
-// Ordenar por fecha (más reciente primero)
-usort($items, function($a, $b) {
-    return $b["timestamp"] <=> $a["timestamp"];
-});
-
-// Limitamos a las últimas 15 para dar variedad con tantas fuentes
-$items = array_slice($items, 0, 15);
-
-// Salida XML
 echo '<?xml version="1.0" encoding="UTF-8"?>';
 ?>
 <rss version="2.0" xmlns:media="http://search.yahoo.com/mrss/">
 <channel>
-<title>Super Feed Necochea Total</title>
+<title>Variedad Necochea Total</title>
 <link>https://tu-dominio.com</link>
-<description>Fusión de todos los medios de Necochea y Quequén</description>
+<description>Una noticia reciente por cada categoría local</description>
 
 <?php foreach ($items as $item): ?>
 <item>
