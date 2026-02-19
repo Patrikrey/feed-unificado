@@ -1,11 +1,6 @@
 <?php
 header("Content-Type: application/rss+xml; charset=UTF-8");
 
-/*
-  FEEDS UNIFICADOS - SELECCIÓN POR CATEGORÍA (VERSIÓN 2026)
-  Optimizado para Make: Incluye GUID y Timeouts.
-*/
-
 $feeds = [
     ["url" => "https://nden.com.ar/rss/locales", "category" => "Locales"],
     ["url" => "https://nden.com.ar/rss/politica", "category" => "Politica"],
@@ -27,11 +22,10 @@ $feeds = [
 
 $all_items = [];
 
-// Configuración de contexto para evitar bloqueos y timeouts
 $context = stream_context_create([
     "http" => [
-        "timeout" => 3, // 3 segundos máximo por cada diario
-        "user_agent" => "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0"
+        "timeout" => 5, // Aumentamos un poquito a 5s por La Nación
+        "user_agent" => "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/122.0.0.0"
     ]
 ]);
 
@@ -50,25 +44,20 @@ foreach ($feeds as $feed) {
         $all_items[] = [
             "title" => trim((string)$item->title),
             "link" => $link,
-            "guid" => md5($link . $feed["category"]), // ID único para Make
+            "guid" => md5($link . $feed["category"]),
             "description" => trim(strip_tags((string)$item->description)),
             "pubDate" => $pubDate,
             "timestamp" => $timestamp,
             "category" => $feed["category"],
-            "image" => extract_image($item)
+            "image" => extract_image($item) // <--- Aquí llama a la función mejorada
         ];
     }
 }
 
-// 1. Ordenar: Lo más nuevo primero
-usort($all_items, function($a, $b) {
-    return $b["timestamp"] <=> $a["timestamp"];
-});
+usort($all_items, function($a, $b) { return $b["timestamp"] <=> $a["timestamp"]; });
 
-// 2. Filtrar: Una por categoría para variedad
 $filtered_items = [];
 $used_categories = [];
-
 foreach ($all_items as $item) {
     if (!in_array($item["category"], $used_categories)) {
         $filtered_items[] = $item;
@@ -76,22 +65,36 @@ foreach ($all_items as $item) {
     }
 }
 
+// ESTA ES LA PARTE QUE DEBERÍAS CAMBIAR:
 function extract_image($item) {
     $namespaces = $item->getNameSpaces(true);
+    
+    // 1. Mejora para La Nación (Busca en todos los media:content)
     if (isset($namespaces["media"])) {
         $media = $item->children($namespaces["media"]);
         if (isset($media->content)) {
-            $attrs = $media->content->attributes();
+            foreach ($media->content as $content) {
+                $attrs = $content->attributes();
+                if (isset($attrs["url"])) return (string)$attrs["url"];
+            }
+        }
+        if (isset($media->thumbnail)) {
+            $attrs = $media->thumbnail->attributes();
             if (isset($attrs["url"])) return (string)$attrs["url"];
         }
     }
+    
+    // 2. Enclosure estándar (Diarionecochea, etc)
     if (isset($item->enclosure)) {
         $attrs = $item->enclosure->attributes();
         if (isset($attrs["url"])) return (string)$attrs["url"];
     }
+    
+    // 3. Buscar en el HTML de la descripción
     if (preg_match('/<img.*?src=["\'](.*?)["\']/i', (string)$item->description, $matches)) {
         return $matches[1];
     }
+    
     return "";
 }
 
@@ -102,7 +105,6 @@ echo '<?xml version="1.0" encoding="UTF-8"?>';
     <title>Variedad Necochea Total</title>
     <link>https://avanzanecochea.digital</link>
     <description>Noticias locales filtradas por categoría</description>
-
     <?php foreach ($filtered_items as $item): ?>
     <item>
         <title><![CDATA[<?= $item["title"] ?>]]></title>
