@@ -7,6 +7,9 @@ header("Content-Type: application/rss+xml; charset=UTF-8");
 */
 
 $feeds = [
+    ["url" => "https://www.presentenoticias.com/rss/la-region/", "category" => "Regionales"],
+    ["url" => "https://www.lacapitalmdp.com/categoria/la-zona/feed/", "category" => "Regionales"],
+    ["url" => "https://www.lanoticia.ar/categoria/provinciales/feed/", "category" => "Regionales"],
     ["url" => "https://www.lacapitalmdp.com/feed/", "category" => "Mar del Plata"],
     ["url" => "https://nden.com.ar/rss/locales", "category" => "Locales"],
     ["url" => "https://nden.com.ar/rss/politica", "category" => "Politica"],
