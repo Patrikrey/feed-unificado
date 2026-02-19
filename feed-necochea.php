@@ -2,6 +2,7 @@
 header("Content-Type: application/rss+xml; charset=UTF-8");
 
 $feeds = [
+    ["url" => "https://www.lacapitalmdp.com/feed/", "category" => "Mar del Plata"],
     ["url" => "https://nden.com.ar/rss/locales", "category" => "Locales"],
     ["url" => "https://nden.com.ar/rss/politica", "category" => "Politica"],
     ["url" => "https://www.lanacion.com.ar/arc/outboundfeeds/rss/category/deportes/?outputType=xml", "category" => "Deportes"],
