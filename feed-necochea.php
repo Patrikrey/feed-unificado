@@ -23,7 +23,6 @@ $feeds = [
     ["url" => "https://quequenlibre.com.ar/feed/", "category" => "Quequén"],
     ["url" => "https://primicias2262.com/feed/", "category" => "Locales"],
     ["url" => "https://www.cuatromedios.com.ar/feed/", "category" => "Regionales"],
-    ["url" => "https://necochea.gov.ar/feed/", "category" => "Oficial"]
 ];
 
 $all_items = [];
