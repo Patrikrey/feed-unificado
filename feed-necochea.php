@@ -1,6 +1,11 @@
 <?php
 header("Content-Type: application/rss+xml; charset=UTF-8");
 
+/*
+  FEED UNIFICADO - AVANZA NECOCHEA
+  Incluye: Necochea, Deportes (La Nación) y Mar del Plata (La Capital).
+*/
+
 $feeds = [
     ["url" => "https://www.lacapitalmdp.com/feed/", "category" => "Mar del Plata"],
     ["url" => "https://nden.com.ar/rss/locales", "category" => "Locales"],
@@ -25,7 +30,7 @@ $all_items = [];
 
 $context = stream_context_create([
     "http" => [
-        "timeout" => 5, // Aumentamos un poquito a 5s por La Nación
+        "timeout" => 7, 
         "user_agent" => "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/122.0.0.0"
     ]
 ]);
@@ -50,13 +55,15 @@ foreach ($feeds as $feed) {
             "pubDate" => $pubDate,
             "timestamp" => $timestamp,
             "category" => $feed["category"],
-            "image" => extract_image($item) // <--- Aquí llama a la función mejorada
+            "image" => extract_image($item)
         ];
     }
 }
 
+// Ordenar por lo más nuevo
 usort($all_items, function($a, $b) { return $b["timestamp"] <=> $a["timestamp"]; });
 
+// Filtrar una noticia por categoría para mantener variedad
 $filtered_items = [];
 $used_categories = [];
 foreach ($all_items as $item) {
@@ -66,46 +73,47 @@ foreach ($all_items as $item) {
     }
 }
 
-// ESTA ES LA PARTE QUE DEBERÍAS CAMBIAR:
 function extract_image($item) {
     $namespaces = $item->getNameSpaces(true);
-    
-    // 1. Mejora para La Nación (Busca en todos los media:content)
+    $img_url = "";
+
+    // 1. Prioridad: Media Content (La Nación y otros)
     if (isset($namespaces["media"])) {
         $media = $item->children($namespaces["media"]);
         if (isset($media->content)) {
             foreach ($media->content as $content) {
                 $attrs = $content->attributes();
-                if (isset($attrs["url"])) return (string)$attrs["url"];
+                if (isset($attrs["url"])) {
+                    $img_url = (string)$attrs["url"];
+                    break;
+                }
             }
         }
-        if (isset($media->thumbnail)) {
-            $attrs = $media->thumbnail->attributes();
-            if (isset($attrs["url"])) return (string)$attrs["url"];
+    }
+
+    // 2. Enclosure (La Capital MDP y WordPress estándar)
+    if (empty($img_url) && isset($item->enclosure)) {
+        $attrs = $item->enclosure->attributes();
+        if (isset($attrs["url"])) $img_url = (string)$attrs["url"];
+    }
+
+    // 3. Búsqueda en descripción (Último recurso para diarios locales)
+    if (empty($img_url)) {
+        if (preg_match('/<img.*?src=["\'](.*?)["\']/i', (string)$item->description, $matches)) {
+            $img_url = $matches[1];
         }
     }
-    
-    // 2. Enclosure estándar (Diarionecochea, etc)
-    if (isset($item->enclosure)) {
-        $attrs = $item->enclosure->attributes();
-        if (isset($attrs["url"])) return (string)$attrs["url"];
-    }
-    
-    // 3. Buscar en el HTML de la descripción
-    if (preg_match('/<img.*?src=["\'](.*?)["\']/i', (string)$item->description, $matches)) {
-        return $matches[1];
-    }
-    
-    return "";
+
+    // LIMPIEZA: Convierte &amp; en & para que el módulo HTTP de Make no falle
+    return html_entity_decode($img_url);
 }
 
 echo '<?xml version="1.0" encoding="UTF-8"?>';
 ?>
 <rss version="2.0" xmlns:media="http://search.yahoo.com/mrss/">
 <channel>
-    <title>Variedad Necochea Total</title>
+    <title>Variedad Necochea y Regional</title>
     <link>https://avanzanecochea.digital</link>
-    <description>Noticias locales filtradas por categoría</description>
     <?php foreach ($filtered_items as $item): ?>
     <item>
         <title><![CDATA[<?= $item["title"] ?>]]></title>
@@ -115,8 +123,8 @@ echo '<?xml version="1.0" encoding="UTF-8"?>';
         <pubDate><?= $item["pubDate"] ?></pubDate>
         <category><![CDATA[<?= $item["category"] ?>]]></category>
         <?php if (!empty($item["image"])): ?>
-        <media:content url="<?= $item["image"] ?>" type="image/jpeg"/>
-        <enclosure url="<?= $item["image"] ?>" type="image/jpeg" length="0"/>
+        <media:content url="<?= htmlspecialchars($item["image"]) ?>" type="image/jpeg"/>
+        <enclosure url="<?= htmlspecialchars($item["image"]) ?>" type="image/jpeg" length="0"/>
         <?php endif; ?>
     </item>
     <?php endforeach; ?>
