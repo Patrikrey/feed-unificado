@@ -13,7 +13,7 @@ $feeds = [
     ["url" => "https://www.lacapitalmdp.com/feed/", "category" => "Mar del Plata"],
     ["url" => "https://nden.com.ar/rss/locales", "category" => "Locales"],
     ["url" => "https://nden.com.ar/rss/politica", "category" => "Politica"],
-    ["url" => "https://www.lanacion.com.ar/arc/outboundfeeds/rss/category/deportes/?outputType=xml", "category" => "Deportes"],
+    //["url" => "https://www.lanacion.com.ar/arc/outboundfeeds/rss/category/deportes/?outputType=xml", "category" => "Deportes"],
     ["url" => "https://nden.com.ar/rss/policiales", "category" => "Policiales"],
     ["url" => "https://ecosdiariosapiv3.eleco.com.ar/feed-notes", "category" => "Locales"],
     ["url" => "https://diarionecochea.com/feed/", "category" => "Locales"],
