@@ -54,6 +54,16 @@ foreach ($selectors as $nombre => $pattern) {
 
 echo "\nLARGO EXTRAÍDO: " . strlen($resultado) . " caracteres\n";
 echo "─────────────────────────────────────────\n";
+// DEBUG temporal - borrar después
+preg_match_all('/<(div|section|article|main)[^>]+(class|id)="([^"]{3,60})"[^>]*>/i', $html, $m);
+$vistos = [];
+foreach ($m[3] as $i => $clase) {
+    if (!in_array($clase, $vistos)) {
+        echo "<{$m[1][$i]}> class: \"$clase\"\n";
+        $vistos[] = $clase;
+    }
+}
+echo "─────────────────────────────────────────\n";
 echo $resultado ?: "⚠️  No se pudo extraer contenido.";
 
 function clean_html($html) {
