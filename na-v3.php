@@ -1,9 +1,11 @@
 <?php
 /*
-  DEBUG - Ver estructura HTML de nden.com.ar
+  TEST - Extractor de contenido de artículos
 */
 
 $test_url = "https://nden.com.ar/nota/35584/reforma-laboral-el-frente-renovador-necochea-respaldo-el-reclamo-nacional";
+
+define('MAX_CONTENT_CHARS', 3500);
 
 $context = stream_context_create([
     "http" => [
@@ -12,23 +14,58 @@ $context = stream_context_create([
     ]
 ]);
 
+header("Content-Type: text/plain; charset=UTF-8");
+
 $html = @file_get_contents($test_url, false, $context);
 if (!$html) { echo "No se pudo descargar"; exit; }
 
-echo "Bytes descargados: " . strlen($html) . "\n\n";
+echo "HTML descargado: " . strlen($html) . " bytes\n";
+echo "─────────────────────────────────────────\n";
 
-// Extraer todos los div/section/article con su class o id
-preg_match_all('/<(div|section|article|main)[^>]+(class|id)="([^"]{3,60})"[^>]*>/i', $html, $matches);
+$selectors = [
+    // nden.com.ar — clase real encontrada en debug
+    "nden texto_nota"          => '/<div[^>]+class="[^"]*texto_nota[^"]*"[^>]*>(.*?)<\/div>\s*(?:<div|<section|$)/si',
+    // WordPress estándar
+    "WordPress entry-content"  => '/<div[^>]+class="[^"]*entry-content[^"]*"[^>]*>(.*?)<\/div>\s*(?:<div|<footer|<aside)/si',
+    "WordPress post-content"   => '/<div[^>]+class="[^"]*post-content[^"]*"[^>]*>(.*?)<\/div>\s*(?:<div|<footer|<aside)/si',
+    // Otros
+    "article-content"          => '/<div[^>]+class="[^"]*article-content[^"]*"[^>]*>(.*?)<\/div>\s*(?:<div|<footer)/si',
+    "content-body"             => '/<div[^>]+class="[^"]*content-body[^"]*"[^>]*>(.*?)<\/div>\s*(?:<div|<footer)/si',
+    // Fallback
+    "tag article"              => '/<article[^>]*>(.*?)<\/article>/si',
+];
 
-echo "=== CLASES Y IDs ENCONTRADOS ===\n";
-$vistos = [];
-foreach ($matches[3] as $i => $clase) {
-    $tag = $matches[1][$i];
-    if (!in_array($clase, $vistos)) {
-        echo "<$tag> class/id: \"$clase\"\n";
-        $vistos[] = $clase;
+$resultado = "";
+foreach ($selectors as $nombre => $pattern) {
+    if (preg_match($pattern, $html, $matches)) {
+        $text = clean_html($matches[1]);
+        if (strlen($text) > 150) {
+            echo "✅ SELECTOR: $nombre\n";
+            echo "─────────────────────────────────────────\n";
+            $resultado = mb_substr($text, 0, MAX_CONTENT_CHARS);
+            break;
+        } else {
+            echo "⚠️  '$nombre' matcheó pero muy corto (" . strlen($text) . " chars)\n";
+        }
+    } else {
+        echo "✗  '$nombre' no matcheó\n";
     }
 }
 
-echo "\n=== PRIMEROS 3000 CHARS DEL HTML (para ver estructura) ===\n";
-echo htmlspecialchars(substr($html, 0, 3000));
+echo "\nLARGO EXTRAÍDO: " . strlen($resultado) . " caracteres\n";
+echo "─────────────────────────────────────────\n";
+echo $resultado ?: "⚠️  No se pudo extraer contenido.";
+
+function clean_html($html) {
+    $html = preg_replace('/<script\b[^>]*>.*?<\/script>/si', '', $html);
+    $html = preg_replace('/<style\b[^>]*>.*?<\/style>/si',   '', $html);
+    $html = preg_replace('/<!--.*?-->/s',                     '', $html);
+    $html = preg_replace('/<iframe[^>]*>.*?<\/iframe>/si',   '', $html);
+    $html = preg_replace('/<figcaption[^>]*>.*?<\/figcaption>/si', '', $html);
+    $html = preg_replace('/<\/p>/i',      ' ', $html);
+    $html = preg_replace('/<br\s*\/?>/i', ' ', $html);
+    $text = strip_tags($html);
+    $text = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    $text = preg_replace('/\s+/', ' ', $text);
+    return trim($text);
+}
