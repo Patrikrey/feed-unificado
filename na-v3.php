@@ -3,7 +3,7 @@
   TEST - Extractor de contenido de artículos
 */
 
-$test_url = "https://www.lacapitalmdp.com/la-autopsia-revelo-que-matias-peralta-tenia-cuatro-heridas-de-bala/";
+$test_url = "https://2262.com.ar/nota/12474/el-municipio-y-los-gremios-acordaron-un-aumento-salarial-del-19-2-para-trabajadores-municipales-en-2026/";
 
 define('MAX_CONTENT_CHARS', 3500);
 
