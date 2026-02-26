@@ -3,7 +3,7 @@
   TEST - Extractor de contenido de artículos
 */
 
-$test_url = "https://tsnnecochea.com.ar/provincia/los-gremios-docentes-anunciaron-un-paro-para-el-dia-que-empiezan-las-clases-217797/";
+$test_url = "https://diarionecochea.com/2026/02/26/artistas-locales-trabajan-a-mil-metros-de-la-costa-para-renovar-el-patrimonio-nacional/";
 
 define('MAX_CONTENT_CHARS', 3500);
 
