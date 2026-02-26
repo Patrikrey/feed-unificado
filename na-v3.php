@@ -3,7 +3,7 @@
   TEST - Extractor de contenido de artículos
 */
 
-$test_url = "https://diarionecochea.com/2026/02/26/artistas-locales-trabajan-a-mil-metros-de-la-costa-para-renovar-el-patrimonio-nacional/";
+$test_url = "https://www.lacapitalmdp.com/la-autopsia-revelo-que-matias-peralta-tenia-cuatro-heridas-de-bala/";
 
 define('MAX_CONTENT_CHARS', 3500);
 
