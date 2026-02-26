@@ -3,7 +3,7 @@
   TEST - Extractor de contenido de artículos
 */
 
-$test_url = "https://nden.com.ar/nota/35584/reforma-laboral-el-frente-renovador-necochea-respaldo-el-reclamo-nacional";
+$test_url = "https://tsnnecochea.com.ar/provincia/los-gremios-docentes-anunciaron-un-paro-para-el-dia-que-empiezan-las-clases-217797/";
 
 define('MAX_CONTENT_CHARS', 3500);
 
