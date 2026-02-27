@@ -97,12 +97,14 @@ foreach ($feeds as $feed) {
 
 usort($all_items, function($a, $b) { return $b["timestamp"] <=> $a["timestamp"]; });
 
-$filtered_items  = [];
-$used_categories = [];
+$filtered_items = [];
+$used_domains   = [];
 foreach ($all_items as $item) {
-    if (!in_array($item["category"], $used_categories)) {
-        $filtered_items[]  = $item;
-        $used_categories[] = $item["category"];
+    if (count($filtered_items) >= 4) break;
+    $domain = parse_url($item["link"], PHP_URL_HOST);
+    if (!in_array($domain, $used_domains)) {
+        $filtered_items[] = $item;
+        $used_domains[]   = $domain;
     }
 }
 
