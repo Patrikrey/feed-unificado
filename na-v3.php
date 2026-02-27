@@ -24,7 +24,7 @@ echo "────────────────────────�
 
 $selectors = [
     // nden.com.ar — clase real encontrada en debug
-    "nden texto_nota"          => '/<div[^>]+class="[^"]*texto_nota[^"]*"[^>]*>(.*?)<\/div>\s*(?:<div|<section|$)/si',
+    "nden/2262 wysiwyg" => '/<div[^>]+class="[^"]*wysiwyg[^"]*"[^>]*>(.*?)<\/div>\s*(?:<div|<section|$)/si',
     //lacapital clse real encontrada
     "lacapital nota_content" => '/<div[^>]+class="[^"]*nota_content[^"]*"[^>]*>(.*?)<\/div>\s*(?:<div|<footer|<aside)/si',
     // WordPress estándar
