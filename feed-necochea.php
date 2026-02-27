@@ -2,43 +2,43 @@
 header("Content-Type: application/rss+xml; charset=UTF-8");
 
 /*
-  FEED UNIFICADO - NECOCHEA v3
-  
-  NOVEDADES:
-  - Extrae contenido completo del artículo para Groq
-  - Selectores probados: nden/2262/necocheadigital (wysiwyg), lacapital (nota_content), tsnnecochea (article)
-  - Texto truncado a 3500 caracteres
-  - Incluido en <content:encoded> para Make
-  - Imagen extraída antes del strip_tags
-  - 4 niveles de fallback para imagen
+  FEED UNIFICADO - NECOCHEA v4
+  - Una noticia por dominio, máximo 4 items
+  - Solo noticias de las últimas 48hs
+  - Prioridad: diarios locales de Necochea primero
+  - content:encoded con contenido completo para Groq
 */
 
 $feeds = [
-    ["url" => "https://www.presentenoticias.com/rss/la-region/",                                              "category" => "Regionales"],
-    ["url" => "https://www.lacapitalmdp.com/categoria/la-zona/feed/",                                        "category" => "Regionales"],
-    ["url" => "https://www.lanoticia.ar/categoria/provinciales/feed/",                                       "category" => "Regionales"],
-    ["url" => "https://www.lacapitalmdp.com/feed/",                                                          "category" => "Mar del Plata"],
-    ["url" => "https://nden.com.ar/rss/locales",                                                             "category" => "Locales"],
-    ["url" => "https://nden.com.ar/rss/politica",                                                            "category" => "Politica"],
-    // ["url" => "https://www.lanacion.com.ar/arc/outboundfeeds/rss/category/deportes/?outputType=xml",      "category" => "Deportes"],
-    ["url" => "https://nden.com.ar/rss/policiales",                                                          "category" => "Policiales"],
-    ["url" => "https://ecosdiariosapiv3.eleco.com.ar/feed-notes",                                            "category" => "Locales"],
-    ["url" => "https://diarionecochea.com/feed/",                                                            "category" => "Locales"],
-    ["url" => "https://tsnnecochea.com.ar/feed/",                                                            "category" => "Locales"],
-    ["url" => "https://necocheadigital.com/feed/",                                                           "category" => "Locales"],
-    ["url" => "https://2262.com.ar/feed/",                                                                   "category" => "Locales"],
-    ["url" => "https://necocheanews.com.ar/feed/",                                                           "category" => "Locales"],
-    ["url" => "https://lavozdenecochea.com.ar/feed/",                                                        "category" => "Locales"],
-    ["url" => "https://alertanecochea.com.ar/feed/",                                                         "category" => "Policiales"],
-    ["url" => "https://necocheahoy.com/feed/",                                                               "category" => "Locales"],
-    ["url" => "https://quequenlibre.com.ar/feed/",                                                           "category" => "Quequén"],
-    ["url" => "https://primicias2262.com/feed/",                                                             "category" => "Locales"],
-    ["url" => "https://www.cuatromedios.com.ar/feed/",                                                       "category" => "Regionales"],
+    // Locales Necochea — PRIORIDAD ALTA
+    ["url" => "https://nden.com.ar/rss/locales",                                                             "category" => "Locales",    "priority" => 1],
+    ["url" => "https://nden.com.ar/rss/politica",                                                            "category" => "Politica",   "priority" => 1],
+    ["url" => "https://nden.com.ar/rss/policiales",                                                          "category" => "Policiales", "priority" => 1],
+    ["url" => "https://tsnnecochea.com.ar/feed/",                                                            "category" => "Locales",    "priority" => 1],
+    ["url" => "https://necocheadigital.com/feed/",                                                           "category" => "Locales",    "priority" => 1],
+    ["url" => "https://2262.com.ar/feed/",                                                                   "category" => "Locales",    "priority" => 1],
+    ["url" => "https://necocheanews.com.ar/feed/",                                                           "category" => "Locales",    "priority" => 1],
+    ["url" => "https://lavozdenecochea.com.ar/feed/",                                                        "category" => "Locales",    "priority" => 1],
+    ["url" => "https://alertanecochea.com.ar/feed/",                                                         "category" => "Policiales", "priority" => 1],
+    ["url" => "https://necocheahoy.com/feed/",                                                               "category" => "Locales",    "priority" => 1],
+    ["url" => "https://quequenlibre.com.ar/feed/",                                                           "category" => "Quequén",    "priority" => 1],
+    ["url" => "https://primicias2262.com/feed/",                                                             "category" => "Locales",    "priority" => 1],
+    ["url" => "https://diarionecochea.com/feed/",                                                            "category" => "Locales",    "priority" => 1],
+    ["url" => "https://ecosdiariosapiv3.eleco.com.ar/feed-notes",                                            "category" => "Locales",    "priority" => 1],
+    // Regionales — PRIORIDAD BAJA (se usan si no hay suficientes locales)
+    ["url" => "https://www.lacapitalmdp.com/feed/",                                                          "category" => "Mar del Plata", "priority" => 2],
+    ["url" => "https://www.lacapitalmdp.com/categoria/la-zona/feed/",                                        "category" => "Regionales", "priority" => 2],
+    ["url" => "https://www.lanoticia.ar/categoria/provinciales/feed/",                                       "category" => "Regionales", "priority" => 2],
+    ["url" => "https://www.presentenoticias.com/rss/la-region/",                                             "category" => "Regionales", "priority" => 2],
+    ["url" => "https://www.cuatromedios.com.ar/feed/",                                                       "category" => "Regionales", "priority" => 2],
+    // ["url" => "https://www.lanacion.com.ar/arc/outboundfeeds/rss/category/deportes/?outputType=xml",      "category" => "Deportes",   "priority" => 2],
 ];
 
 define('MAX_CONTENT_CHARS', 3500);
+define('MAX_AGE_HOURS', 48); // Solo noticias de las últimas 48hs
 
 $all_items = [];
+$now       = time();
 
 $context = stream_context_create([
     "http" => [
@@ -56,25 +56,26 @@ foreach ($feeds as $feed) {
 
     foreach ($rss->channel->item as $item) {
         $pubDate   = (string)$item->pubDate;
-        $timestamp = strtotime($pubDate) ?: time();
-        $link      = trim((string)$item->link);
-        $raw_desc  = (string)$item->description;
+        $timestamp = strtotime($pubDate) ?: $now;
+
+        // Filtrar noticias más viejas que MAX_AGE_HOURS
+        if (($now - $timestamp) > MAX_AGE_HOURS * 3600) continue;
+
+        $link     = trim((string)$item->link);
+        $raw_desc = (string)$item->description;
 
         $namespaces   = $item->getNameSpaces(true);
         $full_content = "";
 
-        // Primero: content:encoded del feed (algunos WordPress lo incluyen)
         if (isset($namespaces["content"])) {
             $content_ns   = $item->children($namespaces["content"]);
             $full_content = trim(strip_tags((string)$content_ns->encoded));
         }
 
-        // Segundo: scraping del artículo
         if (empty($full_content) || strlen($full_content) < 200) {
             $full_content = fetch_article_content($link, $context);
         }
 
-        // Tercero: descripción del feed como fallback
         if (empty($full_content)) {
             $full_content = trim(strip_tags($raw_desc));
         }
@@ -90,18 +91,25 @@ foreach ($feeds as $feed) {
             "pubDate"     => $pubDate,
             "timestamp"   => $timestamp,
             "category"    => $feed["category"],
+            "priority"    => $feed["priority"],
             "image"       => extract_image($item, $raw_desc, $link, $context)
         ];
     }
 }
 
-usort($all_items, function($a, $b) { return $b["timestamp"] <=> $a["timestamp"]; });
+// Ordenar: primero por prioridad (locales antes que regionales), luego por más reciente
+usort($all_items, function($a, $b) {
+    if ($a["priority"] !== $b["priority"]) return $a["priority"] <=> $b["priority"];
+    return $b["timestamp"] <=> $a["timestamp"];
+});
 
+// Una noticia por dominio, máximo 4 items
 $filtered_items = [];
 $used_domains   = [];
 foreach ($all_items as $item) {
     if (count($filtered_items) >= 4) break;
     $domain = parse_url($item["link"], PHP_URL_HOST);
+    $domain = preg_replace('/^www\./', '', $domain); // normalizar www
     if (!in_array($domain, $used_domains)) {
         $filtered_items[] = $item;
         $used_domains[]   = $domain;
@@ -121,18 +129,13 @@ function fetch_article_content($url, $context) {
     if (!$html) return "";
 
     $selectors = [
-        // nden.com.ar / 2262.com.ar / necocheadigital.com (CMS Vork)
-        "wysiwyg"        => '/<div[^>]+class="[^"]*wysiwyg[^"]*"[^>]*>(.*?)<\/div>\s*(?:<div|<section|$)/si',
-        // lacapitalmdp.com
-        "nota_content"   => '/<div[^>]+class="[^"]*nota_content[^"]*"[^>]*>(.*?)<\/div>\s*(?:<div|<footer|<aside)/si',
-        // WordPress estándar
-        "entry-content"  => '/<div[^>]+class="[^"]*entry-content[^"]*"[^>]*>(.*?)<\/div>\s*(?:<div|<footer|<aside)/si',
-        "post-content"   => '/<div[^>]+class="[^"]*post-content[^"]*"[^>]*>(.*?)<\/div>\s*(?:<div|<footer|<aside)/si',
-        // Otros
-        "article-content"=> '/<div[^>]+class="[^"]*article-content[^"]*"[^>]*>(.*?)<\/div>\s*(?:<div|<footer)/si',
-        "content-body"   => '/<div[^>]+class="[^"]*content-body[^"]*"[^>]*>(.*?)<\/div>\s*(?:<div|<footer)/si',
-        // Fallback genérico
-        "article"        => '/<article[^>]*>(.*?)<\/article>/si',
+        '/<div[^>]+class="[^"]*wysiwyg[^"]*"[^>]*>(.*?)<\/div>\s*(?:<div|<section|$)/si',
+        '/<div[^>]+class="[^"]*nota_content[^"]*"[^>]*>(.*?)<\/div>\s*(?:<div|<footer|<aside)/si',
+        '/<div[^>]+class="[^"]*entry-content[^"]*"[^>]*>(.*?)<\/div>\s*(?:<div|<footer|<aside)/si',
+        '/<div[^>]+class="[^"]*post-content[^"]*"[^>]*>(.*?)<\/div>\s*(?:<div|<footer|<aside)/si',
+        '/<div[^>]+class="[^"]*article-content[^"]*"[^>]*>(.*?)<\/div>\s*(?:<div|<footer)/si',
+        '/<div[^>]+class="[^"]*content-body[^"]*"[^>]*>(.*?)<\/div>\s*(?:<div|<footer)/si',
+        '/<article[^>]*>(.*?)<\/article>/si',
     ];
 
     foreach ($selectors as $pattern) {
@@ -166,7 +169,6 @@ function extract_image($item, $raw_desc, $article_url, $context) {
     $namespaces = $item->getNameSpaces(true);
     $img_url    = "";
 
-    // PASO 1 — media:content
     if (isset($namespaces["media"])) {
         $media = $item->children($namespaces["media"]);
         if (isset($media->content)) {
@@ -181,20 +183,17 @@ function extract_image($item, $raw_desc, $article_url, $context) {
         }
     }
 
-    // PASO 2 — enclosure
     if (empty($img_url) && isset($item->enclosure)) {
         $attrs = $item->enclosure->attributes();
         if (isset($attrs["url"])) $img_url = (string)$attrs["url"];
     }
 
-    // PASO 3 — <img> en HTML crudo de descripción
     if (empty($img_url) && !empty($raw_desc)) {
         if (preg_match('/<img[^>]+src=["\']([^"\']+)["\'][^>]*>/i', $raw_desc, $m)) {
             $img_url = $m[1];
         }
     }
 
-    // PASO 4 — og:image del artículo (últimos 20KB)
     if (empty($img_url) && !empty($article_url) && filter_var($article_url, FILTER_VALIDATE_URL)) {
         $html = @file_get_contents($article_url, false, $context);
         if ($html) {
