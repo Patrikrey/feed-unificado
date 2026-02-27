@@ -3,7 +3,7 @@
   TEST - Extractor de contenido de artículos
 */
 
-$test_url = "https://2262.com.ar/nota/12474/el-municipio-y-los-gremios-acordaron-un-aumento-salarial-del-19-2-para-trabajadores-municipales-en-2026/";
+$test_url = "https://necocheadigital.com/nota/117610/abrieron-las-inscripciones-para-la-9-ordf-edicion-del-curso-inicial-de-barberia/";
 
 define('MAX_CONTENT_CHARS', 3500);
 
